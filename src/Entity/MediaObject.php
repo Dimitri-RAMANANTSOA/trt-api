@@ -51,11 +51,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 class MediaObject
 {
     #[ORM\Id, ORM\Column, ORM\GeneratedValue]
-    #[Groups(['media_object:read'])]
+    #[Groups(['media_object:read', 'annonces:read'])]
     private ?int $id = null;
 
     #[ApiProperty(types: ['https://schema.org/contentUrl'])]
-    #[Groups(['media_object:read', 'user:read'])]
+    #[Groups(['media_object:read', 'user:read','annonces:read'])]
     public ?string $contentUrl = null;
 
     #[Vich\UploadableField(mapping: "media_object", fileNameProperty: "filePath")]
@@ -74,7 +74,7 @@ class MediaObject
 
     #[
         ORM\OneToOne(mappedBy: 'media'),
-        Groups(['media_object:read', 'user:read'])
+        Groups(['media_object:read', 'user:read', 'annonces:read'])
     ]
     private ?User $user = null;
 

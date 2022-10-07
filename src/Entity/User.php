@@ -54,7 +54,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[
         ORM\Column(length: 180, unique: true),
-        Groups(['user:read', 'user:write']),
+        Groups(['user:read', 'user:write','annonces:read']),
         Constraints\NotBlank,
         Constraints\Email,
         Constraints\Length(min: 5, max: 100)
@@ -80,9 +80,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[
         ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true),
-        Groups(['user:read', 'user:write'])
+        Groups(['user:read', 'user:write','annonces:read'])
     ]
     private ?MediaObject $media = null;
+
+    #[
+        ORM\ManyToMany(targetEntity: Annonces::class, mappedBy: 'applicants'),
+        Groups(['user:read', 'user:write','annonces:read'])
+    ]
+    private Collection $annonces;
+
+    public function __construct()
+    {
+        $this->annonces = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -175,6 +186,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setMedia(?MediaObject $media): self
     {
         $this->media = $media;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Annonces>
+     */
+    public function getAnnonces(): Collection
+    {
+        return $this->annonces;
+    }
+
+    public function addAnnonce(Annonces $annonce): self
+    {
+        if (!$this->annonces->contains($annonce)) {
+            $this->annonces->add($annonce);
+            $annonce->addApplicant($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAnnonce(Annonces $annonce): self
+    {
+        if ($this->annonces->removeElement($annonce)) {
+            $annonce->removeApplicant($this);
+        }
 
         return $this;
     }
