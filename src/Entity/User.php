@@ -3,15 +3,19 @@
 namespace App\Entity;
 
 use App\Entity\User;
+use App\Entity\MediaObject;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\Collection;
+use Symfony\Component\HttpFoundation\File\File;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -23,7 +27,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
-    security : "is_granted('ROLE_ADMIN')",
+    //security : "is_granted('ROLE_ADMIN')",
     normalizationContext : ['groups' => ['user:read']],
     denormalizationContext : ['groups' => ['user:write']],
     paginationItemsPerPage : 10,
@@ -73,6 +77,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         Constraints\Length(min: 8, max: 100)
     ]
     private ?string $password = null;
+
+    #[
+        ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true),
+        Groups(['user:read', 'user:write'])
+    ]
+    private ?MediaObject $media = null;
 
     public function getId(): ?int
     {
@@ -155,5 +165,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    public function getMedia(): ?MediaObject
+    {
+        return $this->media;
+    }
+
+    public function setMedia(?MediaObject $media): self
+    {
+        $this->media = $media;
+
+        return $this;
     }
 }
