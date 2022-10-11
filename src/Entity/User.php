@@ -90,6 +90,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     ]
     private Collection $annonces;
 
+    #[
+        ORM\Column(length: 255),
+        Groups(['user:read', 'user:write','annonces:read']),
+    ]
+    private ?string $firstname = null;
+
+    #[
+        ORM\Column(length: 255),
+        Groups(['user:read', 'user:write','annonces:read']),
+    ]
+    private ?string $lastname = null;
+
+    #[
+        ORM\Column(length: 255),
+        Groups(['user:read', 'user:write','annonces:read']),
+    ]
+    private ?string $entrepriseaddress = null;
+
     public function __construct()
     {
         $this->annonces = new ArrayCollection();
@@ -213,6 +231,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->annonces->removeElement($annonce)) {
             $annonce->removeApplicant($this);
         }
+
+        return $this;
+    }
+
+    public function getFirstname(): ?string
+    {
+        return $this->firstname;
+    }
+
+    public function setFirstname(string $firstname): self
+    {
+        $this->firstname = $firstname;
+
+        return $this;
+    }
+
+    public function getLastname(): ?string
+    {
+        return $this->lastname;
+    }
+
+    public function setLastname(string $lastname): self
+    {
+        $this->lastname = $lastname;
+
+        return $this;
+    }
+
+    public function getEntrepriseaddress(): ?string
+    {
+        return $this->entrepriseaddress;
+    }
+
+    public function setEntrepriseaddress(string $entrepriseaddress): self
+    {
+        $this->entrepriseaddress = $entrepriseaddress;
 
         return $this;
     }

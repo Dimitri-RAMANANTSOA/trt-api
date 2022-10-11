@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\AnnoncesRepository;
 use ApiPlatform\Metadata\GetCollection;
@@ -17,6 +18,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: AnnoncesRepository::class)]
 #[ApiResource(
+    security : "is_granted('ROLE_USER')",
     normalizationContext : ['groups' => ['annonces:read']],
     denormalizationContext : ['groups' => ['annonces:write']],
     paginationItemsPerPage : 10,
@@ -39,31 +41,31 @@ class Annonces
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'annonces:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
     ]
     private ?string $title = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'annoncesannonces:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
     ]
     private ?string $place = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'annonces:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
     ]
     private ?string $description = null;
 
     #[
         ORM\Column,
-        Groups(['annonces:read', 'annonces:write']),
+        Groups(['annonces:read', 'admin:write', 'consultant:write']),
     ]
     private ?bool $isPublished = false;
 
     #[
         ORM\ManyToMany(targetEntity: User::class, inversedBy: 'annonces'),
-        Groups(['annonces:read', 'annonces:write']),
+        Groups(['annonces:read', 'admin:write']),
     ]
     private Collection $applicants;
 
