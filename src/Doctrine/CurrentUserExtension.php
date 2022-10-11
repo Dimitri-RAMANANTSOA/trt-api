@@ -32,7 +32,7 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
 
     private function addWhere(QueryBuilder $queryBuilder, string $resourceClass): void
     {
-        if (Annonces::class == $resourceClass && $this->security->isGranted('ROLE_CANDIDAT') || null === $user = $this->security->getUser()) 
+        if (Annonces::class == $resourceClass && $this->security->isGranted('ROLE_CANDIDAT')) 
         {
             $rootAlias = $queryBuilder->getRootAliases()[0];
             $queryBuilder->andWhere(sprintf('%s.isPublished = 1', $rootAlias));

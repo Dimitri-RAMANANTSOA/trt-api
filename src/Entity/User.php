@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Entity\User;
 use App\Entity\MediaObject;
+use App\Entity\Applications;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
@@ -27,7 +28,6 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
-    //security : "is_granted('ROLE_ADMIN')",
     normalizationContext : ['groups' => ['user:read']],
     denormalizationContext : ['groups' => ['user:write']],
     paginationItemsPerPage : 10,
@@ -35,9 +35,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
     paginationClientItemsPerPage : true,
     operations: [
         new Get(),
-        new Post(),
-        new Patch(),
-        new Delete(),
+        new Post(security: "is_granted('ROLE_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_ADMIN') or object.email == user.email"),
+        new Delete(security: "is_granted('ROLE_ADMIN')"),
         new GetCollection(),
     ]
 )]
@@ -48,18 +48,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\GeneratedValue]
     #[
         ORM\Column,
-        Groups(['user:read'])
+        Groups(['user:read', 'applications:read'])
     ]
     private ?int $id = null;
 
     #[
         ORM\Column(length: 180, unique: true),
-        Groups(['user:read', 'user:write','annonces:read']),
+        Groups(['user:read', 'user:write', 'applications:read']),
         Constraints\NotBlank,
         Constraints\Email,
         Constraints\Length(min: 5, max: 100)
     ]
-    private ?string $email = null;
+    public ?string $email = null;
 
     #[
         ORM\Column,
@@ -80,37 +80,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[
         ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true),
-        Groups(['user:read', 'user:write','annonces:read'])
+        Groups(['user:read', 'user:write', 'applications:read'])
     ]
     private ?MediaObject $media = null;
 
     #[
-        ORM\ManyToMany(targetEntity: Annonces::class, mappedBy: 'applicants'),
-        Groups(['user:read', 'user:write','annonces:read'])
-    ]
-    private Collection $annonces;
-
-    #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write','annonces:read']),
+        Groups(['user:read', 'user:write', 'applications:read']),
     ]
     private ?string $firstname = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write','annonces:read']),
+        Groups(['user:read', 'user:write', 'applications:read']),
     ]
     private ?string $lastname = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write','annonces:read']),
+        Groups(['user:read', 'user:write', 'applications:read']),
     ]
     private ?string $entrepriseaddress = null;
+
+    #[
+        ORM\OneToMany(mappedBy: 'applicant', targetEntity: Applications::class),
+        Groups(['user:read', 'user:write', 'applications:read']),
+    ]
+    private Collection $applications;
 
     public function __construct()
     {
         $this->annonces = new ArrayCollection();
+        $this->candidateValidations = new ArrayCollection();
+        $this->applications = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -208,33 +210,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @return Collection<int, Annonces>
-     */
-    public function getAnnonces(): Collection
-    {
-        return $this->annonces;
-    }
-
-    public function addAnnonce(Annonces $annonce): self
-    {
-        if (!$this->annonces->contains($annonce)) {
-            $this->annonces->add($annonce);
-            $annonce->addApplicant($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAnnonce(Annonces $annonce): self
-    {
-        if ($this->annonces->removeElement($annonce)) {
-            $annonce->removeApplicant($this);
-        }
-
-        return $this;
-    }
-
     public function getFirstname(): ?string
     {
         return $this->firstname;
@@ -267,6 +242,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEntrepriseaddress(string $entrepriseaddress): self
     {
         $this->entrepriseaddress = $entrepriseaddress;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Applications>
+     */
+    public function getApplications(): Collection
+    {
+        return $this->applications;
+    }
+
+    public function addApplication(Applications $application): self
+    {
+        if (!$this->applications->contains($application)) {
+            $this->applications->add($application);
+            $application->setApplicant($this);
+        }
+
+        return $this;
+    }
+
+    public function removeApplication(Applications $application): self
+    {
+        if ($this->applications->removeElement($application)) {
+            // set the owning side to null (unless already changed)
+            if ($application->getApplicant() === $this) {
+                $application->setApplicant(null);
+            }
+        }
 
         return $this;
     }

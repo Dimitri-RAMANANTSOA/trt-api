@@ -25,6 +25,8 @@ final class ContextBuilder implements SerializerContextBuilderInterface
         $context = $this->decorated->createFromRequest($request, $normalization, $extractedAttributes);
         $resourceClass = $context['resource_class'] ?? null;
 
+        //dd($context, $resourceClass);
+
         if (
         $resourceClass === Annonces::class && 
         $this->authorizationChecker->isGranted('ROLE_RECRUTEUR') && 
@@ -48,7 +50,6 @@ final class ContextBuilder implements SerializerContextBuilderInterface
             $context['groups'][] = 'consultant:write';
         }
 
-        dd($context['groups']);
         return $context;
     }
 }

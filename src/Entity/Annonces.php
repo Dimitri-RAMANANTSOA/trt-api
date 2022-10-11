@@ -3,8 +3,10 @@
 namespace App\Entity;
 
 use App\Entity\User;
+use App\Entity\Applications;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
+use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
@@ -36,42 +38,47 @@ class Annonces
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[
+        ORM\Column,
+        Groups(['annonces:read', 'applications:read']),
+    ]
     private ?int $id = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write', 'applications:read']),
     ]
     private ?string $title = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write', 'applications:read']),
     ]
     private ?string $place = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['annonces:read', 'admin:write', 'recruteur:write']),
+        Groups(['annonces:read', 'admin:write', 'recruteur:write', 'applications:read']),
     ]
     private ?string $description = null;
 
     #[
         ORM\Column,
-        Groups(['annonces:read', 'admin:write', 'consultant:write']),
+        Groups(['annonces:read', 'admin:write', 'consultant:write', 'applications:read']),
     ]
     private ?bool $isPublished = false;
 
     #[
-        ORM\ManyToMany(targetEntity: User::class, inversedBy: 'annonces'),
-        Groups(['annonces:read', 'admin:write']),
+        ORM\OneToMany(mappedBy: 'annonce', targetEntity: Applications::class),
+        Groups(['annonces:read', 'admin:write', 'consultant:write', 'applications:read']),
     ]
-    private Collection $applicants;
+    private Collection $applications;
 
     public function __construct()
     {
         $this->applicants = new ArrayCollection();
+        $this->candidateValidations = new ArrayCollection();
+        $this->applications = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -128,25 +135,31 @@ class Annonces
     }
 
     /**
-     * @return Collection<int, User>
+     * @return Collection<int, Applications>
      */
-    public function getApplicants(): Collection
+    public function getApplications(): Collection
     {
-        return $this->applicants;
+        return $this->applications;
     }
 
-    public function addApplicant(User $applicant): self
+    public function addApplication(Applications $application): self
     {
-        if (!$this->applicants->contains($applicant)) {
-            $this->applicants->add($applicant);
+        if (!$this->applications->contains($application)) {
+            $this->applications->add($application);
+            $application->setAnnonce($this);
         }
 
         return $this;
     }
 
-    public function removeApplicant(User $applicant): self
+    public function removeApplication(Applications $application): self
     {
-        $this->applicants->removeElement($applicant);
+        if ($this->applications->removeElement($application)) {
+            // set the owning side to null (unless already changed)
+            if ($application->getAnnonce() === $this) {
+                $application->setAnnonce(null);
+            }
+        }
 
         return $this;
     }
