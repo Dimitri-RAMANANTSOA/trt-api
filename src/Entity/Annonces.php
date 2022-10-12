@@ -20,7 +20,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: AnnoncesRepository::class)]
 #[ApiResource(
-    security : "is_granted('ROLE_USER')",
+    security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
     normalizationContext : ['groups' => ['annonces:read']],
     denormalizationContext : ['groups' => ['annonces:write']],
     paginationItemsPerPage : 10,
@@ -69,7 +69,7 @@ class Annonces
     private ?bool $isPublished = false;
 
     #[
-        ORM\OneToMany(mappedBy: 'annonce', targetEntity: Applications::class),
+        ORM\OneToMany(mappedBy: 'annonce', targetEntity: Applications::class, cascade: ['remove']),
         Groups(['annonces:read', 'admin:write', 'consultant:write', 'applications:read']),
     ]
     private Collection $applications;

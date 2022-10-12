@@ -15,28 +15,32 @@ use App\Repository\UserRepository;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
+use App\Validator\AdminGroupsGenerator;
 use Doctrine\Common\Collections\Collection;
 use Symfony\Component\HttpFoundation\File\File;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Validator\Constraints as Constraints;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasher;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactory;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use App\Validator as AcmeAssert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
+    security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
+    validationContext: ['groups' => AdminGroupsGenerator::class],
     normalizationContext : ['groups' => ['user:read']],
-    denormalizationContext : ['groups' => ['user:write']],
+    //denormalizationContext : ['groups' => ['user:write']],
     paginationItemsPerPage : 10,
     paginationMaximumItemsPerPage : 100,
     paginationClientItemsPerPage : true,
     operations: [
         new Get(),
-        new Post(security: "is_granted('ROLE_ADMIN')"),
-        new Patch(security: "is_granted('ROLE_ADMIN') or object.email == user.email"),
+        new Post(),
+        new Patch(),
         new Delete(security: "is_granted('ROLE_ADMIN')"),
         new GetCollection(),
     ]
@@ -44,6 +48,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[UniqueEntity('email')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[
@@ -54,16 +59,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[
         ORM\Column(length: 180, unique: true),
-        Groups(['user:read', 'user:write', 'applications:read']),
-        Constraints\NotBlank,
-        Constraints\Email,
-        Constraints\Length(min: 5, max: 100)
+        Groups(['user:read', 'applications:read', 'user:write', 'admin:write']),
+        Assert\NotBlank,
+        Assert\Email,
+        Assert\Length(min: 5, max: 100)
     ]
     public ?string $email = null;
 
     #[
         ORM\Column,
-        Groups(['user:read', 'user:write'])
+        Groups(['user:read', 'user:write','admin:write']),
+        AcmeAssert\ContainsInArray(
+            forbiddenvalues: ["ROLE_ADMIN", "ROLE_CONSULTANT"],
+            groups: ['user']
+        )
     ]
     private array $roles = [];
 
@@ -72,41 +81,47 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[
         ORM\Column,
-        Groups(['user:write']),
-        Constraints\NotBlank,
-        Constraints\Length(min: 8, max: 100)
+        Groups(['user:write', 'admin:write']),
+        Assert\NotBlank,
+        Assert\Length(min: 8, max: 100)
     ]
     private ?string $password = null;
 
     #[
         ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true),
-        Groups(['user:read', 'user:write', 'applications:read'])
+        Groups(['user:read', 'user:write', 'applications:read', 'admin:write'])
     ]
     private ?MediaObject $media = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write', 'applications:read']),
+        Groups(['user:read','applications:read', 'user:write', 'admin:write']),
     ]
     private ?string $firstname = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write', 'applications:read']),
+        Groups(['user:read', 'user:write', 'applications:read', 'admin:write']),
     ]
     private ?string $lastname = null;
 
     #[
         ORM\Column(length: 255),
-        Groups(['user:read', 'user:write', 'applications:read']),
+        Groups(['user:read', 'user:write', 'applications:read', 'admin:write']),
     ]
     private ?string $entrepriseaddress = null;
 
     #[
-        ORM\OneToMany(mappedBy: 'applicant', targetEntity: Applications::class),
-        Groups(['user:read', 'user:write', 'applications:read']),
+        ORM\OneToMany(mappedBy: 'applicant', targetEntity: Applications::class, cascade: ['remove']),
+        Groups(['user:read', 'applications:read', 'user:write', 'admin:write']),
     ]
     private Collection $applications;
+
+    #[
+        ORM\Column,
+        Groups(['user:read', 'applications:read', 'consultant:write', 'admin:write'])
+    ]
+    public ?bool $isActive = false;
 
     public function __construct()
     {
@@ -272,6 +287,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $application->setApplicant(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isIsActive(): ?bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): self
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }

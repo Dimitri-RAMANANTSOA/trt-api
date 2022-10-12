@@ -16,15 +16,16 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ApplicationsRepository::class)]
 #[ApiResource(
+    security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
     normalizationContext : ['groups' => ['applications:read']],
-    denormalizationContext : ['groups' => ['applications:write']],
+    //denormalizationContext : ['groups' => ['applications:write']],
     paginationItemsPerPage : 10,
     paginationMaximumItemsPerPage : 100,
     paginationClientItemsPerPage : true,
     operations: [
         new Get(),
         new Post(),
-        new Patch(),
+        new Patch(security: "is_granted('ROLE_ADMIN')"),
         new Delete(),
         new GetCollection(),
     ]

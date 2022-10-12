@@ -4,6 +4,7 @@
 namespace App\Doctrine;
 
 use App\Entity\Annonces;
+use App\Entity\Applications;
 use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Metadata\Operation;
 use Symfony\Component\Security\Core\Security;
@@ -36,6 +37,14 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         {
             $rootAlias = $queryBuilder->getRootAliases()[0];
             $queryBuilder->andWhere(sprintf('%s.isPublished = 1', $rootAlias));
+        }
+
+        if (Applications::class == $resourceClass && $this->security->isGranted('ROLE_CANDIDAT')) 
+        {
+            $userId= $this->security->getUser()->getId();
+            $rootAlias = $queryBuilder->getRootAliases()[0];
+            $queryBuilder->andWhere(sprintf('%s.applicant = :value', $rootAlias));
+            $queryBuilder->setParameter('value', $userId);
         }
         return; 
     }
