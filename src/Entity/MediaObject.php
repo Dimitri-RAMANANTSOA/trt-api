@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\UserOwnedInterface;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
@@ -18,6 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[Vich\Uploadable]
 #[ORM\Entity]
 #[ApiResource(
+    security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_CANDIDAT')",
     normalizationContext: ['groups' => ['media_object:read']], 
     types: ['https://schema.org/MediaObject'],
     operations: [
@@ -48,7 +50,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         )
     ]
 )]
-class MediaObject
+class MediaObject implements UserOwnedInterface
 {
     #[ORM\Id, ORM\Column, ORM\GeneratedValue]
     #[Groups(['media_object:read', 'annonces:read'])]
@@ -74,7 +76,7 @@ class MediaObject
 
     #[
         ORM\OneToOne(mappedBy: 'media'),
-        Groups(['media_object:read', 'user:read', 'annonces:read'])
+        Groups(['media_object:read', 'user:read', 'annonces:read', 'media_object_create'])
     ]
     private ?User $user = null;
 

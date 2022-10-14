@@ -4,15 +4,16 @@
 namespace App\Controller;
 
 use App\Entity\MediaObject;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Security;
 use Symfony\Component\HttpKernel\Attribute\AsController;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[AsController]
 final class CreateMediaObjectAction extends AbstractController
 {
-    public function __invoke(Request $request): MediaObject
+    public function __invoke(Request $request, Security $security): MediaObject
     {
         $uploadedFile = $request->files->get('file');
         if (!$uploadedFile) {
@@ -21,6 +22,7 @@ final class CreateMediaObjectAction extends AbstractController
 
         $mediaObject = new MediaObject();
         $mediaObject->file = $uploadedFile;
+        $mediaObject->setUser($security->getUser());
 
         return $mediaObject;
     }

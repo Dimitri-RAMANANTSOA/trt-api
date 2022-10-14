@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\UserOwnedInterface;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\AnnoncesRepository;
@@ -34,7 +35,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(),
     ]
 )]
-class Annonces
+class Annonces implements UserOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -70,13 +71,15 @@ class Annonces
 
     #[
         ORM\OneToMany(mappedBy: 'annonce', targetEntity: Applications::class, cascade: ['remove']),
-        Groups(['annonces:read', 'admin:write', 'consultant:write', 'applications:read']),
+        Groups(['annonces:read', 'admin:write', 'consultant:write']),
     ]
     private Collection $applications;
 
+    #[ORM\ManyToOne(inversedBy: 'annonces')]
+    private ?User $user = null;
+
     public function __construct()
     {
-        $this->applicants = new ArrayCollection();
         $this->candidateValidations = new ArrayCollection();
         $this->applications = new ArrayCollection();
     }
@@ -160,6 +163,18 @@ class Annonces
                 $application->setAnnonce(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): self
+    {
+        $this->user = $user;
 
         return $this;
     }

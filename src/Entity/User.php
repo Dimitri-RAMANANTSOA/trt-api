@@ -30,19 +30,19 @@ use App\Validator as AcmeAssert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ApiResource(
-    security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
+    //security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
     validationContext: ['groups' => AdminGroupsGenerator::class],
     normalizationContext : ['groups' => ['user:read']],
-    //denormalizationContext : ['groups' => ['user:write']],
+    denormalizationContext : ['groups' => ['']],
     paginationItemsPerPage : 10,
     paginationMaximumItemsPerPage : 100,
     paginationClientItemsPerPage : true,
     operations: [
-        new Get(),
-        new Post(),
-        new Patch(),
+        new Get(security: "is_granted('ROLE_ADMIN') or user.isActive == 1"),
+        new Post(denormalizationContext: ['groups' => ['user:write']]),
+        new Patch(security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_CONSULTANT') or user.isActive == 1"),
         new Delete(security: "is_granted('ROLE_ADMIN')"),
-        new GetCollection(),
+        new GetCollection(security: "is_granted('ROLE_ADMIN') or user.isActive == 1"),
     ]
 )]
 #[UniqueEntity('email')]
@@ -53,16 +53,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\GeneratedValue]
     #[
         ORM\Column,
-        Groups(['user:read', 'applications:read'])
+        Groups(['user:read', 'applications:read', 'media_object:read'])
     ]
     private ?int $id = null;
 
     #[
         ORM\Column(length: 180, unique: true),
-        Groups(['user:read', 'applications:read', 'user:write', 'admin:write']),
-        Assert\NotBlank,
-        Assert\Email,
-        Assert\Length(min: 5, max: 100)
+        Groups(['user:read', 'applications:read', 'media_object:read', 'user:write', 'admin:write']),
+        Assert\NotBlank(groups: ['user']),
+        Assert\Email(groups: ['user']),
+        Assert\Length(min: 5, max: 100, groups: ['user'])
     ]
     public ?string $email = null;
 
@@ -82,8 +82,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[
         ORM\Column,
         Groups(['user:write', 'admin:write']),
-        Assert\NotBlank,
-        Assert\Length(min: 8, max: 100)
+        Assert\NotBlank(groups: ['user']),
+        Assert\Length(min: 8, max: 100, groups: ['user'])
     ]
     private ?string $password = null;
 
@@ -109,10 +109,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         ORM\Column(length: 255),
         Groups(['user:read', 'user:write', 'applications:read', 'admin:write']),
     ]
-    private ?string $entrepriseaddress = null;
+    private ?string $entrepriseaddress = '';
 
     #[
-        ORM\OneToMany(mappedBy: 'applicant', targetEntity: Applications::class, cascade: ['remove']),
+        ORM\OneToMany(mappedBy: 'user', targetEntity: Applications::class, cascade: ['remove']),
         Groups(['user:read', 'applications:read', 'user:write', 'admin:write']),
     ]
     private Collection $applications;
@@ -122,6 +122,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         Groups(['user:read', 'applications:read', 'consultant:write', 'admin:write'])
     ]
     public ?bool $isActive = false;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Annonces::class)]
+    private Collection $annonces;
 
     public function __construct()
     {
@@ -273,7 +276,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!$this->applications->contains($application)) {
             $this->applications->add($application);
-            $application->setApplicant($this);
+            $application->setUser($this);
         }
 
         return $this;
@@ -283,8 +286,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->applications->removeElement($application)) {
             // set the owning side to null (unless already changed)
-            if ($application->getApplicant() === $this) {
-                $application->setApplicant(null);
+            if ($application->getUser() === $this) {
+                $application->setUser(null);
             }
         }
 
@@ -299,6 +302,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsActive(bool $isActive): self
     {
         $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Annonces>
+     */
+    public function getAnnonces(): Collection
+    {
+        return $this->annonces;
+    }
+
+    public function addAnnonce(Annonces $annonce): self
+    {
+        if (!$this->annonces->contains($annonce)) {
+            $this->annonces->add($annonce);
+            $annonce->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAnnonce(Annonces $annonce): self
+    {
+        if ($this->annonces->removeElement($annonce)) {
+            // set the owning side to null (unless already changed)
+            if ($annonce->getUser() === $this) {
+                $annonce->setUser(null);
+            }
+        }
 
         return $this;
     }

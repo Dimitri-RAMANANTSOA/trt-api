@@ -35,9 +35,12 @@ final class ContextBuilder implements SerializerContextBuilderInterface
         
         if(
         $resourceClass === User::class &&
-        $context["uri_variables"]["id"] == $this->tokenStorage->getToken()->getUser()->getId()
+        $extractedAttributes['operation'] instanceof Patch
         ) {
-            $context['groups'][] = 'user:write';
+            if($context["uri_variables"]["id"] == $this->tokenStorage->getToken()->getUser()->getId())
+            {
+                $context['groups'][] = 'user:write';
+            }
         }
 
         if (
