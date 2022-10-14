@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\UserOwnedInterface;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ApplicationsRepository;
@@ -18,19 +19,25 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     security: "is_granted('ROLE_ADMIN') or user.isActive == 1",
     normalizationContext : ['groups' => ['applications:read']],
-    //denormalizationContext : ['groups' => ['applications:write']],
+    //denormalizationContext : ['groups' => ['']],
     paginationItemsPerPage : 10,
     paginationMaximumItemsPerPage : 100,
     paginationClientItemsPerPage : true,
     operations: [
         new Get(),
-        new Post(),
-        new Patch(security: "is_granted('ROLE_ADMIN')"),
-        new Delete(),
+        new Post(
+            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_CANDIDAT')",
+            denormalizationContext : ['groups' => ['applications:write']]
+        ),
+        new Patch(
+            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_CONSULTANT')",
+            denormalizationContext : ['groups' => ['']]
+        ),
+        new Delete(security: "is_granted('ROLE_ADMIN') or object.user == user"),
         new GetCollection(),
     ]
 )]
-class Applications
+class Applications implements UserOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -42,19 +49,19 @@ class Applications
 
     #[
         ORM\ManyToOne(inversedBy: 'applications'),
-        Groups(['applications:read', 'applications:write', 'annonces:read', 'user:read']),
+        Groups(['applications:read', 'applications:write', 'annonces:read', 'user:read', 'admin:write']),
     ]
     private ?Annonces $annonce = null;
 
     #[
         ORM\ManyToOne(inversedBy: 'applications'),
-        Groups(['applications:read', 'applications:write', 'annonces:read', 'user:read']),
+        Groups(['applications:read', 'annonces:read', 'user:read', 'admin:write']),
     ]
-    private ?User $applicant = null;
+    public ?User $user = null;
 
     #[
         ORM\Column,
-        Groups(['applications:read', 'applications:write', 'annonces:read', 'user:read']),
+        Groups(['applications:read', 'applications:write', 'annonces:read', 'user:read', 'consultant:write', 'admin:write']),
     ]
     private ?bool $isValidate = false;
 
@@ -75,14 +82,14 @@ class Applications
         return $this;
     }
 
-    public function getApplicant(): ?User
+    public function getUser(): ?User
     {
-        return $this->applicant;
+        return $this->user;
     }
 
-    public function setApplicant(?User $applicant): self
+    public function setUser(?User $user): self
     {
-        $this->applicant = $applicant;
+        $this->user = $user;
 
         return $this;
     }

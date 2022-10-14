@@ -43,9 +43,38 @@ final class CurrentUserExtension implements QueryCollectionExtensionInterface, Q
         {
             $userId= $this->security->getUser()->getId();
             $rootAlias = $queryBuilder->getRootAliases()[0];
-            $queryBuilder->andWhere(sprintf('%s.applicant = :value', $rootAlias));
+            $queryBuilder->andWhere(sprintf('%s.user = :value', $rootAlias));
             $queryBuilder->setParameter('value', $userId);
         }
+
+        if (Annonces::class == $resourceClass && $this->security->isGranted('ROLE_RECRUTEUR')) 
+        {
+            $userId= $this->security->getUser()->getId();
+            $rootAlias = $queryBuilder->getRootAliases()[0];
+            $queryBuilder->andWhere(sprintf('%s.user = :value', $rootAlias));
+            $queryBuilder->setParameter('value', $userId);
+        }
+
+        if (Applications::class == $resourceClass && $this->security->isGranted('ROLE_RECRUTEUR')) 
+        {
+            $annonces = [];
+            foreach($this->security->getUser()->getAnnonces() as $annonce)
+            {
+                $annonces[] = $annonce->getId();
+            }
+
+            $userId= $this->security->getUser()->getId();
+            $rootAlias = $queryBuilder->getRootAliases()[0];
+
+            $annoncelist = implode(',',array_unique($annonces));
+
+            $queryBuilder
+                ->where($queryBuilder->expr()->IN(sprintf('%s.annonce', $rootAlias), $annoncelist))
+                ->andWhere(sprintf('%s.isValidate = 1', $rootAlias))
+            ;
+
+        }
+
         return; 
     }
 }
